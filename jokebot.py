@@ -2,6 +2,8 @@ import time
 import csv
 import sys
 import os.path
+import requests
+import json
 
 """
 Tells one joke, given a prompt and punchline
@@ -41,25 +43,51 @@ def read_csv(file):
 				valid = False
 	return valid, joke_list
 
+"""
+gets JSON array of r/dadjokes posts and returns it (if successful)
+"""
+def reddit_req(url):
+	r = requests.get(url, headers = {'User-agent': 'oz-jokebot'})
+	if r.status_code != 200:
+		print("An error happened with code " + str(r.status_code) + ". Joke's on you!")
+		quit()
+	return r.json()["data"]["children"]
+
+"""
+filter func, throws away jokes that are NSFW or that don't start with why, what or how
+"""
+def keep(post):
+	first_word = post["data"]["title"].split(" ")[0].lower()
+	starts_wwh = first_word == "why" or first_word == "what" or first_word == "how"
+	return not post["data"]["over_18"] and starts_wwh
+
+"""
+converts to [prompt, punchline]
+"""
+def to_2list(post):
+	return [post["data"]["title"], post["data"]["selftext"]]
+
 if __name__ == "__main__":
 	num_args = len(sys.argv)
+	jokes = []
 	if num_args == 1:
-		print("No joke file given")
-		quit()
+		data = list(filter(keep, reddit_req("https://www.reddit.com/r/dadjokes.json")))
+		jokes = list(map(to_2list, data))
 	elif num_args > 2:
 		print("Too many arguments")
 		quit()
-	if not os.path.isfile(sys.argv[1]):
-		print("File doesn't exist")
-		quit()
-	name, ext = os.path.splitext(sys.argv[1])
-	if ext != '.csv':
-		print("File provided is not a csv")
-		quit()
-	valid, jokes = read_csv(sys.argv[1])
-	if not valid:
-		print("File is not a valid joke file")
-		quit()
+	else:
+		if not os.path.isfile(sys.argv[1]):
+			print("File doesn't exist")
+			quit()
+		name, ext = os.path.splitext(sys.argv[1])
+		if ext != '.csv':
+			print("File provided is not a csv")
+			quit()
+		valid, jokes = read_csv(sys.argv[1])
+		if not valid:
+			print("File is not a valid joke file")
+			quit()
 	for joke in jokes: 				# joke is a 2-item list
 		tell_joke(joke[0], joke[1])
 		if not encore():
