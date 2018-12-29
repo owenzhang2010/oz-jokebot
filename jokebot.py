@@ -3,7 +3,6 @@ import csv
 import sys
 import os.path
 import requests
-import json
 
 """
 Tells one joke, given a prompt and punchline
@@ -92,3 +91,4 @@ if __name__ == "__main__":
 		tell_joke(joke[0], joke[1])
 		if not encore():
 			break
+	print("Thank you! You've been a wonderful audience")
